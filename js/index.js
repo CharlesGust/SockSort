@@ -1,18 +1,29 @@
 //
 // SockSort by Elizabeth Rives & Charles Gust
 //
-// total number of socks is gridSize * gridSize
 
-var gridSize = 4;           // length of the socks gridSize
-var nMaxSocks = gridSize * gridSize;
-var nMaxScores = 4;         // how many possible scores are there?
-var sockHolder = [];        // [nMaxSocks];
-var sockDisplayOrder = [];  // [nMaxSocks];
+var gridSize = 4;                     // length of the socks gridSize
+var nMaxSocks = gridSize * gridSize;  // total number of socks is gridSize * gridSize
+var nMaxScores = 4;                   // how many distinct scores are there?
+var sockHolder = [];                  // [nMaxSocks];
+var sockDisplayOrder = [];            // [nMaxSocks];
 var matchLists;
 var numeralToWord = ["zero", "one", "two", "three", "four",
                      "five", "six", "seven", "eight", "nine"];
 var gridColumns = "four";   // numeralToWord[16/gridSize] ??
 var canvasPrefix = "canvas";
+var tupleRow = "data-row";
+var tupleCol = "data-col";
+var sockColorMapping = [
+      "black", //hsl(  0,100,  0)", // black
+      "black", //hsl(  0,100,  0)", // black
+      "white", //hsl(  0,100,100)", // white
+      "white", //hsl(  0,100,100)", // white
+      "yellow", //hsl(  0,100, 50)", // color1
+      "red",  //hsl( 90,100, 50)", // color2
+      "pink", //hsl(180,100, 50)", // color3
+      "blue", //hsl(270,100, 50)"  // color4
+];
 
 function toNumber(sbNumber) {
   return parseInt(sbNumber,10);
@@ -23,7 +34,8 @@ function toNumber(sbNumber) {
 // currently:
 //    color: the sock color
 //    stripeColor: the stripe color
-// for instance: size, pattern, material, soil
+// for instance: size, pattern, material, soil, holes
+//
 function Sock(sockColor, stripeColor, displayOrder) {
   this.sockColor = sockColor;
   this.stripeColor = stripeColor;
@@ -69,8 +81,8 @@ function initializeGrid() {
       if (nScore < nMaxScores-1) {
         // anything with nMaxScore is a leftover, so don't need a list
         var $jLi = $("<li>{" + iRow + "," + iCol + "}</li>");
-        $jLi.attr("data-row", iRow);
-        $jLi.attr("data-col", iCol);
+        $jLi.attr(tupleRow, iRow);
+        $jLi.attr(tupleCol, iCol);
 
         $j = $ml;
         $j = $j.find(" ul:eq(" + nScore + ")");
@@ -79,17 +91,6 @@ function initializeGrid() {
     }
   }
 }
-
-var sockColorMapping = [
-      "black", //hsl(  0,100,  0)", // black
-      "black", //hsl(  0,100,  0)", // black
-      "white", //hsl(  0,100,100)", // white
-      "white", //hsl(  0,100,100)", // white
-      "yellow", //hsl(  0,100, 50)", // color1
-      "red",  //hsl( 90,100, 50)", // color2
-      "pink", //hsl(180,100, 50)", // color3
-      "blue", //hsl(270,100, 50)"  // color4
-];
 
 function randomSockColor() {
   return sockColorMapping[Math.floor(Math.random() * 8)];
@@ -103,7 +104,6 @@ function generateSocksRandom() {
 }
 
 function makeDivs() {
-
   for (var i = 0; i < nMaxSocks; i++) {
     var $newDiv = $('<div class="' + gridColumns + ' columns laundrybasket__sock"></div>');
     $('#laundrybasket').append($newDiv);
@@ -111,19 +111,15 @@ function makeDivs() {
 }
 
 function makeCanvasElems() {
+  $('.laundrybasket__sock').each(function(index) {
+    var $newCanvas = $('<canvas id="' + canvasPrefix + index + '">' + '</canvas>');
 
-$('.laundrybasket__sock').each(function(index) {
-  var $newCanvas = $('<canvas id="' + canvasPrefix + index + '">' + '</canvas>');
-
-  $(this).append($newCanvas);
-});
+    $(this).append($newCanvas);
+  });
 }
 
-
 function drawSocks() {
-
   $('.laundrybasket__sock').each(function(index) {
-
     var elSock = document.getElementById(canvasPrefix + index);
     var ctx = elSock.getContext('2d');
 
@@ -232,10 +228,12 @@ function changeDisplayOrder(iSockIndex, iDisplayOrder) {
 }
 
 //
-//  The matchLists element is the root of the jQuery data structure we have built
-//  It has as many <ul> lists as we have possible scores, and the <li>'s in each
+//  The matchLists element is the root of the jQuery data structure that has tallied
+//  which tuples correspond to which distinct scores.
+//  It has as many <ul> lists as we have distinct scores, and the <li>'s in each
 //  list has data-row and data-col set to indicate which tuple is represented.
-//  Any sock that is already paired must be skipped over and cannot be paired again.
+//  If any sock that is already paired appears in another tuple, it must be
+//  skipped and cannot be paired again.
 //
 function sockSort() {
   var nCurSockCount = 0;
@@ -254,8 +252,8 @@ function sockSort() {
           return;
         }
 
-        var iFirst = toNumber($(this).attr("data-row"));
-        var iSecond = toNumber($(this).attr("data-col"));
+        var iFirst = toNumber($(this).attr(tupleRow));
+        var iSecond = toNumber($(this).attr(tupleCol));
         if ( (!sockHolder[iFirst].paired) && (!sockHolder[iSecond].paired)) {
           // we've got the next pair!!!
           sockHolder[iFirst].paired = true;
@@ -273,7 +271,6 @@ function sockSort() {
   }
 }
 
-
 alert("start");
 generateSocksRandom();
 makeDivs();
@@ -283,6 +280,3 @@ drawSocks();
 initializeGrid();
 sockSort();
 alert("end");
-
-
-
