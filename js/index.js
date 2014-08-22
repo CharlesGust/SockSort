@@ -165,17 +165,33 @@ function changeDisplayOrder(iSockIndex, iDisplayOrder) {
     // save the index to be evicted and the display soon vacant for the swap
     var iSockIndexEvicted = sockDisplayOrder[iDisplayOrder];
     var iDisplaySoonVacant = sockHolder[iSockIndex].displayOrder;
-    var $src, $dest, $swaps, $swapd;
+    var $src;
+    var $dest;
+    var $srcParent;
+    var $destParent;
+    var $currChild = $("#laundrybasket");
+    $currChild = $currChild.children();
 
-    // fadeout the box at iDisplayOrder
-    // ????
-    $src = $("#" + canvasPrefix + iDisplayOrder);
+    nChildMax = Math.max(iDisplayOrder, iDisplaySoonVacant);
+    for ( iChild = 0; iChild < nChildMax; iChild++) {
+      if ( iChild == iDisplayOrder ) {
+        $src = $currChild;
+      } else if ( iChild == iDisplaySoonVacant) {
+        $dest = $currChild;
+      }
+      $currChild = $currChild.next();
+    }
+
     $src.fadeOut("slow");
+    $srcParent = $src.parent();
+    $src = $src.detach();
 
-    // fadeout the box at iDisplaySoonVacant
-    // ????
-    $dest = $("#" + canvasPrefix + iDisplaySoonVacant);
     $dest.fadeOut("slow");
+    $destParent = $dest.parent();
+    $dest = $dest.detach();
+
+    $srcParent.append($dest);
+    $destParent.append($src);
 
     // swap the global display order
     sockDisplayOrder[iDisplayOrder] = iSockIndex;
@@ -185,45 +201,15 @@ function changeDisplayOrder(iSockIndex, iDisplayOrder) {
     sockHolder[iSockIndex].displayOrder = iDisplayOrder;
     sockHolder[iSockIndexEvicted].displayOrder = iDisplaySoonVacant;
 
-    // the Canvas<index> id's correspond to the sockDisplayOrder array
-    // that is, if we display Canvas<sockDisplayOrder[0]> is the first
-    // sock to display
-    // So, perhaps the best way to achieve this is to navigate the DOM and
-    // like we are doing the swaps here in the sockDisplayOrder array,
-    // we want to mirror those same swaps by swapping the elements in
-    // the DOM.
-
-    // reconstruct the id's of the faded out boxes
-    // ????
-    $src.removeAttr("id");
-    $dest.removeAttr("id");
-
-    $src.removeAttr("selector");
-    $dest.removeAttr("selector");
-
-    // It's not good to clone an item with an "id" attribute because you
-    // can end up with duplicates. So, since we're going to build the "id"
-    // attribute to put back on $src and $dest, we can just remove it before
-    // the call to clone()
-    $swaps = $src.clone();
-    $swapd = $dest.clone();
-
-    $src = $swapd;
-    $dest = $swaps;
-
-    $dest.attr("id", canvasPrefix+iDisplayOrder);
-    $src.attr("id", canvasPrefix+iDisplaySoonVacant);
-
-    $dest.attr("selector", canvasPrefix+iDisplayOrder);
-    $src.attr("selector", canvasPrefix+iDisplaySoonVacant);
-
     // fadein the box (now) at iDisplaySoonVacant
     // ????
-    $src.fadeIn("slow");
+    $src = $(src).fadeIn("slow");
+    $src.removeAttr("style");
 
     // fadein the box (now) at iDisplayOrder
     // ????
-    $dest.fadeIn("slow");
+    $dest = $(dest).fadeIn("slow");
+    $dest.removeAttr("style");
   }
 }
 
