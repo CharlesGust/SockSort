@@ -41,8 +41,13 @@ function Sock(sockColor, stripeColor, displayOrder) {
   this.stripeColor = stripeColor;
   this.displayOrder = displayOrder;
   this.paired = false;      // a sock may only be matched if not already paired
-}
 
+/*
+Sock.draw = function(ctx) {
+
+  }
+  */
+}
 //
 // We use O(n^2) space to generate a grid that will give us how closely matched we are
 // With such a small number of attributes, it's clear that the sequence of best matches
@@ -96,67 +101,91 @@ function randomSockColor() {
   return sockColorMapping[Math.floor(Math.random() * 8)];
 }
 
-function generateSocksRandom() {
-  for (n = 0; n < nMaxSocks; n++) {
-    sockHolder[n] = new Sock(randomSockColor(), randomSockColor(), n);
-    sockDisplayOrder[n] = n;
-  }
-}
 
-function makeDivs() {
+
+function laundryBasket(laundryBasketPrefix) {
+  this.laundryBasketPrefix = laundryBasketPrefix;
+
   for (var i = 0; i < nMaxSocks; i++) {
-    var $newDiv = $('<div class="' + gridColumns + ' columns laundrybasket__sock"></div>');
-    $('#laundrybasket').append($newDiv);
-  }
-}
+    var $j;
 
-function makeCanvasElems() {
-  $('.laundrybasket__sock').each(function(index) {
-    var $newCanvas = $('<canvas id="' + canvasPrefix + index + '">' + '</canvas>');
+    // make Div to hold canvas elements
+    var $newDiv = $('<div class="' + gridColumns + ' columns ' + laundryBasketPrefix + '__sock"></div>');
+    var $newCanvas = $('<canvas id="' + canvasPrefix + i + '">' + '</canvas>');
 
-    $(this).append($newCanvas);
-  });
-}
+    $j = $newDiv.append($newCanvas);
 
-function drawSocks() {
-  $('.laundrybasket__sock').each(function(index) {
-    var elSock = document.getElementById(canvasPrefix + index);
+    $j = $('#' + laundryBasketPrefix).append($j);
+
+    // make canvas element
+
+    //$j = $j.append($newCanvas);
+
+    // create sock
+    sockHolder[i] = new Sock(randomSockColor(), randomSockColor(), i);
+
+    // initialize the display order
+    sockDisplayOrder[i] = i;
+
+    // create sock drawing
+    var elSock = document.getElementById(canvasPrefix + i);
     var ctx = elSock.getContext('2d');
 
-    ctx.fillStyle = sockHolder[index].sockColor;
+    ctx.fillStyle = sockHolder[i].sockColor;
+
     ctx.fillRect(100, 10, 65, 75);
 
-    ctx.fillStyle = sockHolder[index].stripeColor;
+    ctx.fillStyle = sockHolder[i].stripeColor;
     ctx.fillRect(100, 20, 65, 10);
 
     ctx.moveTo(165, 85);
     ctx.lineTo(100, 65);
-    ctx.strokeStyle = sockHolder[index].sockColor;
+    ctx.strokeStyle = sockHolder[i].sockColor;
     ctx.stroke();
     ctx.lineTo(65, 110);
     ctx.stroke();
     ctx.lineTo(130, 115);
     ctx.stroke();
     ctx.lineTo(165, 85);
-    ctx.fillStyle = sockHolder[index].sockColor;
+    ctx.fillStyle = sockHolder[i].sockColor;
     ctx.fill();
 
     ctx.beginPath();
     ctx.arc(98, 110, 33, 6, Math.PI, false);
     ctx.closePath();
     ctx.lineWidth = 2;
-    ctx.fillStyle = sockHolder[index].sockColor;
+    ctx.fillStyle = sockHolder[i].sockColor;
     ctx.fill();
-  });
+    //Sock.draw(sockHolder[i],ctx);
+  }
 }
 
-// from http://stackoverflow.com/questions/698301/is-there-a-native-jquery-function-to-switch-elements
-// swapping the canvas elements - hardcoded to test
-function swapSocks() {
+function performVisualSwap(iSockIndex, iSockIndexEvicted, iDisplayOrder, iDisplaySoonVacant) {
+    // Understanding the model
+    // We have a tag "laundrybasket" which has a list of unnamed divs under
+    // it and each unnamed div has a named ("canvas1, canvas2, etc") canvas
+    // element underneath it.
+    // So, in order to exchange two socks, we have to find the canvas element
+    // and then switch it
 
-  setTimeout(function() {
+    var $laundrybasket = $("#laundrybasket");
+    var $canvasSrc = $laundrybasket.find("#" + canvasPrefix + iSockIndex);
+    var $canvasDest = $laundrybasket.find("#" + canvasPrefix + iSockIndexEvicted);
+    var $divSrc = $canvasSrc.parent();
+    var $divDest = $canvasDest.parent();
 
-  $('#1').before($('#2'));}, 5000);
+    $canvasSrc.fadeOut("slow");
+    $canvasDest.fadeOut("slow");
+    $canvasSrc = $canvasSrc.detach();
+    $canvasDest = $canvasDest.detach();
+
+    $divSrc.append($canvasDest);
+    $divDest.append($canvasSrc);
+
+    $canvasSrc.fadeIn("slow");
+    $canvasSrc.removeAttr("style");
+    $canvasDest.fadeIn("slow");
+    $canvasDest.removeAttr("style");
 }
 
 function changeDisplayOrder(iSockIndex, iDisplayOrder) {
@@ -165,33 +194,8 @@ function changeDisplayOrder(iSockIndex, iDisplayOrder) {
     // save the index to be evicted and the display soon vacant for the swap
     var iSockIndexEvicted = sockDisplayOrder[iDisplayOrder];
     var iDisplaySoonVacant = sockHolder[iSockIndex].displayOrder;
-    var $src;
-    var $dest;
-    var $srcParent;
-    var $destParent;
-    var $currChild = $("#laundrybasket");
-    $currChild = $currChild.children();
 
-    nChildMax = Math.max(iDisplayOrder, iDisplaySoonVacant);
-    for ( iChild = 0; iChild < nChildMax; iChild++) {
-      if ( iChild == iDisplayOrder ) {
-        $src = $currChild;
-      } else if ( iChild == iDisplaySoonVacant) {
-        $dest = $currChild;
-      }
-      $currChild = $currChild.next();
-    }
-
-    $src.fadeOut("slow");
-    $srcParent = $src.parent();
-    $src = $src.detach();
-
-    $dest.fadeOut("slow");
-    $destParent = $dest.parent();
-    $dest = $dest.detach();
-
-    $srcParent.append($dest);
-    $destParent.append($src);
+    performVisualSwap(iSockIndex, iSockIndexEvicted, iDisplayOrder, iDisplaySoonVacant);
 
     // swap the global display order
     sockDisplayOrder[iDisplayOrder] = iSockIndex;
@@ -200,16 +204,6 @@ function changeDisplayOrder(iSockIndex, iDisplayOrder) {
     // swap each socks recording of it's display position
     sockHolder[iSockIndex].displayOrder = iDisplayOrder;
     sockHolder[iSockIndexEvicted].displayOrder = iDisplaySoonVacant;
-
-    // fadein the box (now) at iDisplaySoonVacant
-    // ????
-    $src = $(src).fadeIn("slow");
-    $src.removeAttr("style");
-
-    // fadein the box (now) at iDisplayOrder
-    // ????
-    $dest = $(dest).fadeIn("slow");
-    $dest.removeAttr("style");
   }
 }
 
@@ -221,7 +215,7 @@ function changeDisplayOrder(iSockIndex, iDisplayOrder) {
 //  If any sock that is already paired appears in another tuple, it must be
 //  skipped and cannot be paired again.
 //
-function sockSort() {
+function sockMatch() {
   var nCurSockCount = 0;
   var $ml = $(matchLists);
   var $j;
@@ -245,8 +239,13 @@ function sockSort() {
           sockHolder[iFirst].paired = true;
           sockHolder[iSecond].paired = true;
 
-          changeDisplayOrder(iFirst, nCurSockCount++);
+          // why is the order reversed? Because the tuples are calculated
+          // to always have the smaller number second in the tuple
+          // if 0 and 2 are the first match, we want to swap 0,0 and 2,1
+          // because if you do 2,0 and 0,1 you very likely won't have a
+          // match because the sock at 0 will be the sock originally at 1.
           changeDisplayOrder(iSecond, nCurSockCount++);
+          changeDisplayOrder(iFirst, nCurSockCount++);
         }
       });
 
@@ -257,12 +256,14 @@ function sockSort() {
   }
 }
 
-alert("start");
-generateSocksRandom();
-makeDivs();
-makeCanvasElems();
-drawSocks();
-//swapSocks();
+//generateSocksRandom();
+laundryBasket("laundrybasket");
+//makeDivs();
+//makeCanvasElems();
+//drawSocks();
+//alert("Socks are in the basket!")
 initializeGrid();
-sockSort();
-alert("end");
+document.getElementById("sortsocks").addEventListener('click', sockMatch, false);
+//sockMatch();
+//alert("Socks are sorted!");
+
